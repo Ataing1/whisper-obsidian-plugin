@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+import { MAX_AUDIO_SEGMENT_SIZE_BYTES } from "src/audioConstants";
 
 export interface AudioRecorder {
 	startRecording(): Promise<void>;
@@ -25,8 +26,6 @@ export class NativeAudioRecorder implements AudioRecorder {
 	private mimeType: string | undefined;
 	private segments: Blob[] = [];
 	private currentChunkSize: number = 0;
-
-	private static readonly SEGMENT_SIZE_LIMIT = 24 * 1024 * 1024; // 24MB
 
 	getRecordingState(): "inactive" | "recording" | "paused" | undefined {
 		return this.recorder?.state;
@@ -131,7 +130,7 @@ export class NativeAudioRecorder implements AudioRecorder {
 
 			if (
 				this.currentChunkSize >=
-				NativeAudioRecorder.SEGMENT_SIZE_LIMIT
+				MAX_AUDIO_SEGMENT_SIZE_BYTES
 			) {
 				this.cycleRecorder();
 			}

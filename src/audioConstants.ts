@@ -1,0 +1,1 @@
+export const MAX_AUDIO_SEGMENT_SIZE_BYTES = 24 * 1024 * 1024; // 24MB

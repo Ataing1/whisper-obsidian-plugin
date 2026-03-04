@@ -6,6 +6,7 @@ import { WhisperSettingsTab } from "src/WhisperSettingsTab";
 import { SettingsManager, WhisperSettings } from "src/SettingsManager";
 import { NativeAudioRecorder } from "src/AudioRecorder";
 import { RecordingStatus, StatusBar } from "src/StatusBar";
+import { MAX_AUDIO_SEGMENT_SIZE_BYTES } from "src/audioConstants";
 import { getBaseFileName } from "src/utils";
 export default class Whisper extends Plugin {
 	settings: WhisperSettings;
@@ -89,18 +90,30 @@ export default class Whisper extends Plugin {
 					const files = (event.target as HTMLInputElement).files;
 					if (files && files.length > 0) {
 						const file = files[0];
-						if (file.size > 25 * 1024 * 1024) {
-							new Notice(
-								"Uploaded file exceeds 25MB. Chunking uploaded files is not supported. Please use a shorter file."
-							);
-							return;
-						}
 						const fileName = file.name;
 						const baseFileName = getBaseFileName(fileName);
 						const extension = fileName.split(".").pop() ?? "webm";
-						const audioBlob = file.slice(0, file.size, file.type);
+						const audioBlobs: Blob[] = [];
+						for (
+							let offset = 0;
+							offset < file.size;
+							offset += MAX_AUDIO_SEGMENT_SIZE_BYTES
+						) {
+							const chunkEnd = Math.min(
+								offset + MAX_AUDIO_SEGMENT_SIZE_BYTES,
+								file.size
+							);
+							audioBlobs.push(file.slice(offset, chunkEnd, file.type));
+						}
+
+						if (audioBlobs.length > 1) {
+							new Notice(
+								`Large upload detected. Splitting into ${audioBlobs.length} segments for transcription.`
+							);
+						}
+
 						await this.audioHandler.sendAudioData(
-							[audioBlob],
+							audioBlobs,
 							baseFileName,
 							extension
 						);
