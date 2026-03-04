@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Notice, Plugin } from "obsidian";
 import { Timer } from "src/Timer";
 import { Controls } from "src/Controls";
 import { AudioHandler } from "src/AudioHandler";
@@ -6,6 +6,7 @@ import { WhisperSettingsTab } from "src/WhisperSettingsTab";
 import { SettingsManager, WhisperSettings } from "src/SettingsManager";
 import { NativeAudioRecorder } from "src/AudioRecorder";
 import { RecordingStatus, StatusBar } from "src/StatusBar";
+import { getBaseFileName } from "src/utils";
 export default class Whisper extends Plugin {
 	settings: WhisperSettings;
 	settingsManager: SettingsManager;
@@ -55,15 +56,14 @@ export default class Whisper extends Plugin {
 					await this.recorder.startRecording();
 				} else {
 					this.statusBar.updateStatus(RecordingStatus.Processing);
-					const audioBlob = await this.recorder.stopRecording();
+					const audioBlobs = await this.recorder.stopRecording();
 					const extension = this.recorder
 						.getMimeType()
-						?.split("/")[1];
-					const fileName = `${new Date()
+						?.split("/")[1] ?? "webm";
+					const baseFileName = new Date()
 						.toISOString()
-						.replace(/[:.]/g, "-")}.${extension}`;
-					// Use audioBlob to send or save the recorded audio as needed
-					await this.audioHandler.sendAudioData(audioBlob, fileName);
+						.replace(/[:.]/g, "-");
+					await this.audioHandler.sendAudioData(audioBlobs, baseFileName, extension);
 					this.statusBar.updateStatus(RecordingStatus.Idle);
 				}
 			},
@@ -89,12 +89,20 @@ export default class Whisper extends Plugin {
 					const files = (event.target as HTMLInputElement).files;
 					if (files && files.length > 0) {
 						const file = files[0];
+						if (file.size > 25 * 1024 * 1024) {
+							new Notice(
+								"Uploaded file exceeds 25MB. Chunking uploaded files is not supported. Please use a shorter file."
+							);
+							return;
+						}
 						const fileName = file.name;
+						const baseFileName = getBaseFileName(fileName);
+						const extension = fileName.split(".").pop() ?? "webm";
 						const audioBlob = file.slice(0, file.size, file.type);
-						// Use audioBlob to send or save the uploaded audio as needed
 						await this.audioHandler.sendAudioData(
-							audioBlob,
-							fileName
+							[audioBlob],
+							baseFileName,
+							extension
 						);
 					}
 				};

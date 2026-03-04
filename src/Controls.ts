@@ -71,15 +71,13 @@ export class Controls extends Modal {
 	async stopRecording() {
 		console.log("stopping recording...");
 		this.plugin.statusBar.updateStatus(RecordingStatus.Processing);
-		const blob = await this.plugin.recorder.stopRecording();
+		const blobs = await this.plugin.recorder.stopRecording();
 		this.plugin.timer.reset();
 		this.resetGUI();
 
-		const extension = this.plugin.recorder.getMimeType()?.split("/")[1];
-		const fileName = `${new Date()
-			.toISOString()
-			.replace(/[:.]/g, "-")}.${extension}`;
-		await this.plugin.audioHandler.sendAudioData(blob, fileName);
+		const extension = this.plugin.recorder.getMimeType()?.split("/")[1] ?? "webm";
+		const baseFileName = new Date().toISOString().replace(/[:.]/g, "-");
+		await this.plugin.audioHandler.sendAudioData(blobs, baseFileName, extension);
 		this.plugin.statusBar.updateStatus(RecordingStatus.Idle);
 		this.close();
 	}
