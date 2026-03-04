@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.6.3](https://github.com/Ataing1/whisper-obsidian-plugin/compare/1.6.2...1.6.3) (2026-03-04)
+
 ## [1.6.2](https://github.com/Ataing1/whisper-obsidian-plugin/compare/1.6.0...1.6.2) (2026-03-04)
 
 ## 1.6.0 (2026-03-04)

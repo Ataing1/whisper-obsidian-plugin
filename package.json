@@ -1,6 +1,6 @@
 {
 	"name": "whisper",
-	"version": "1.6.2",
+	"version": "1.6.3",
 	"description": "Speech-to-text in Obsidian using OpenAI Whisper",
 	"main": "main.js",
 	"scripts": {
