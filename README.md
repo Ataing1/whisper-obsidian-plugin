@@ -2,6 +2,10 @@
 
 Obsidian Whisper is a plugin that effortlessly turns your speech into written notes. Just speak your mind, and let [Whisper](https://openai.com/research/whisper) from OpenAI do the rest!
 
+### Why this fork?
+
+This is a fork of the original [Whisper plugin](https://github.com/nikdanilov/whisper-obsidian-plugin) by Nik Danilov. The original plugin limits uploaded audio files to 25MB. This fork adds support for **audio files longer than 25MB**, so you can transcribe longer recordings (e.g. lectures, interviews, podcasts) without splitting them manually.
+
 ## 🚀 Getting Started
 
 1. This plugin can be installed from "Community Plugins" inside Obsidian.
@@ -54,7 +58,7 @@ Both "Start/Stop recording" and "Upload Audio File" actions can also be accessed
 
 ## 🤝 Contributing
 
-We welcome and appreciate contributions, issue reports, and feature requests from the community! Feel free to visit the [Issues](https://github.com/nikdanilov/whisper-obsidian-plugin/issues) page to share your thoughts and suggestions.
+We welcome and appreciate contributions, issue reports, and feature requests from the community! Feel free to open an issue on the repository to share your thoughts and suggestions.
 
 ## 💬 Whisper API
 
@@ -65,19 +69,13 @@ We welcome and appreciate contributions, issue reports, and feature requests fro
 
 If you want to install this plugin manually, use the following steps:
 
-1. Download `manifest.json`, `main.js`, `styles.css` from the [GitHub repository](https://github.com/nikdanilov/whisper-obsidian-plugin/releases) into the `plugins/whisper` folder within your Obsidian vault.
+1. Download `manifest.json`, `main.js`, `styles.css` from the [releases](./releases) page of this repository into the `plugins/whisper` folder within your Obsidian vault.
 2. Click on `Reload plugins` button inside `Settings > Community plugins`.
 3. Locate the "Whisper" plugin and enable it.
 4. In the plugin settings include your OpenAI API key.
 
-## 🤩 Say Thank You
+## 🙏 Credits
 
-Are you finding value in this plugin? Great! You can fuel my coding sessions and share your appreciation by buying me a coffee [here](https://ko-fi.com/nikdanilov).
-
-Help others discover the magic of the Obsidian Whisper Plugin! I'd be thrilled if you could share your experiences on Twitter, Reddit, or your preferred social media platform!
-
-You can find me on Twitter [@nikdanilov\_](https://twitter.com/nikdanilov_).
-
-[<img style="float:left" src="https://user-images.githubusercontent.com/14358394/115450238-f39e8100-a21b-11eb-89d0-fa4b82cdbce8.png" width="200">](https://ko-fi.com/nikdanilov)
+This plugin is a fork of [Whisper by Nik Danilov](https://github.com/nikdanilov/whisper-obsidian-plugin). Original work © 2023 Nik Danilov.
 
 ---

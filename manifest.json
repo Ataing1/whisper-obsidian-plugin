@@ -4,8 +4,7 @@
   "version": "1.5.5",
   "minAppVersion": "0.15.0",
   "description": "Speech-to-text in Obsidian using OpenAI Whisper",
-  "author": "Nik Danilov",
-  "authorUrl": "https://nikdanilov.com",
-  "fundingUrl": "patreon.com/nikdanilov",
+  "author": "Andrew Taing",
+  "authorUrl": "https://github.com/ataing",
   "isDesktopOnly": false
 }

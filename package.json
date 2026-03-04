@@ -9,7 +9,7 @@
 		"release": "release-it"
 	},
 	"keywords": [],
-	"author": "Nik Danilov",
+	"author": "Andrew Taing",
 	"license": "MIT",
 	"devDependencies": {
 		"@commitlint/cli": "^17.6.5",
