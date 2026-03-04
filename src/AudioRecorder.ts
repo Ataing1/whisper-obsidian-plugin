@@ -1,8 +1,10 @@
 import { Notice } from "obsidian";
 import { MAX_AUDIO_SEGMENT_SIZE_BYTES } from "src/audioConstants";
 
+export type AudioCaptureMode = "microphone" | "microphone-and-system";
+
 export interface AudioRecorder {
-	startRecording(): Promise<void>;
+	startRecording(captureMode?: AudioCaptureMode): Promise<void>;
 	pauseRecording(): Promise<void>;
 	stopRecording(): Promise<Blob[]>;
 }
@@ -23,9 +25,13 @@ export class NativeAudioRecorder implements AudioRecorder {
 	private chunks: BlobPart[] = [];
 	private recorder: MediaRecorder | null = null;
 	private stream: MediaStream | null = null;
+	private micStream: MediaStream | null = null;
+	private systemStream: MediaStream | null = null;
+	private audioContext: AudioContext | null = null;
+	private mixedDestination: MediaStreamAudioDestinationNode | null = null;
 	private mimeType: string | undefined;
 	private segments: Blob[] = [];
-	private currentChunkSize: number = 0;
+	private currentChunkSize = 0;
 
 	getRecordingState(): "inactive" | "recording" | "paused" | undefined {
 		return this.recorder?.state;
@@ -35,12 +41,10 @@ export class NativeAudioRecorder implements AudioRecorder {
 		return this.mimeType;
 	}
 
-	async startRecording(): Promise<void> {
+	async startRecording(captureMode: AudioCaptureMode = "microphone"): Promise<void> {
 		if (!this.stream) {
 			try {
-				this.stream = await navigator.mediaDevices.getUserMedia({
-					audio: true,
-				});
+				this.stream = await this.initializeStream(captureMode);
 				this.mimeType = getSupportedMimeType();
 
 				if (!this.mimeType) {
@@ -169,10 +173,68 @@ export class NativeAudioRecorder implements AudioRecorder {
 	}
 
 	private releaseStream(): void {
+		this.mixedDestination = null;
+		if (this.audioContext) {
+			this.audioContext.close();
+			this.audioContext = null;
+		}
+
+		if (this.micStream) {
+			this.micStream.getTracks().forEach((track) => track.stop());
+			this.micStream = null;
+		}
+
+		if (this.systemStream) {
+			this.systemStream.getTracks().forEach((track) => track.stop());
+			this.systemStream = null;
+		}
+
 		if (this.stream) {
 			this.stream.getTracks().forEach((track) => track.stop());
 			this.stream = null;
 		}
 		this.recorder = null;
+	}
+
+	private async initializeStream(
+		captureMode: AudioCaptureMode
+	): Promise<MediaStream> {
+		this.micStream = await navigator.mediaDevices.getUserMedia({
+			audio: true,
+		});
+
+		if (captureMode === "microphone") {
+			return this.micStream;
+		}
+
+		new Notice(
+			"Select a screen/window and enable system audio sharing to capture meeting audio."
+		);
+		this.systemStream = await navigator.mediaDevices.getDisplayMedia({
+			audio: true,
+			video: true,
+		});
+
+		const hasSystemAudioTrack = this.systemStream
+			.getAudioTracks()
+			.some((track) => track.readyState === "live");
+		if (!hasSystemAudioTrack) {
+			throw new Error(
+				"No system audio track detected. Enable audio sharing in the capture picker and try again."
+			);
+		}
+
+		this.audioContext = new AudioContext();
+		this.mixedDestination = this.audioContext.createMediaStreamDestination();
+
+		const addStreamToMix = (stream: MediaStream) => {
+			const source = this.audioContext!.createMediaStreamSource(stream);
+			source.connect(this.mixedDestination!);
+		};
+
+		addStreamToMix(this.micStream);
+		addStreamToMix(this.systemStream);
+
+		return this.mixedDestination.stream;
 	}
 }

@@ -24,6 +24,7 @@ export class WhisperSettingsTab extends PluginSettingTab {
 		this.createModelSetting();
 		this.createPromptSetting();
 		this.createLanguageSetting();
+		this.createCaptureModeSetting();
 		this.createSaveAudioFileToggleSetting();
 		this.createSaveAudioFilePathSetting();
 		this.createNewFileToggleSetting();
@@ -130,6 +131,31 @@ export class WhisperSettingsTab extends PluginSettingTab {
 				await this.settingsManager.saveSettings(this.plugin.settings);
 			}
 		);
+	}
+
+	private createCaptureModeSetting(): void {
+		new Setting(this.containerEl)
+			.setName("Audio capture mode")
+			.setDesc(
+				"Microphone + system audio captures your mic and meeting audio (Zoom/Huddles) when available."
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("microphone", "Microphone only")
+					.addOption(
+						"microphone-and-system",
+						"Microphone + system audio"
+					)
+					.setValue(this.plugin.settings.captureMode)
+					.onChange(async (value) => {
+						this.plugin.settings.captureMode = value as
+							| "microphone"
+							| "microphone-and-system";
+						await this.settingsManager.saveSettings(
+							this.plugin.settings
+						);
+					})
+			);
 	}
 
 	private createSaveAudioFileToggleSetting(): void {

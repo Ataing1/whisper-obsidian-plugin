@@ -55,9 +55,13 @@ export class Controls extends Modal {
 
 	async startRecording() {
 		console.log("start");
-		this.plugin.statusBar.updateStatus(RecordingStatus.Recording);
-		await this.plugin.recorder.startRecording();
-		this.plugin.timer.start();
+		await this.plugin.recorder.startRecording(this.plugin.settings.captureMode);
+		if (this.plugin.recorder.getRecordingState() === "recording") {
+			this.plugin.statusBar.updateStatus(RecordingStatus.Recording);
+			this.plugin.timer.start();
+		} else {
+			this.plugin.statusBar.updateStatus(RecordingStatus.Idle);
+		}
 		this.resetGUI();
 	}
 

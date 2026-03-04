@@ -22,6 +22,8 @@ Click on the ribbon button to open the recording controls interface.
 Use the "Start" button to begin recording. You can pause and resume the recording using the "Pause/Resume" button. Click the "Stop" button once you're done. After stopping the recording, the plugin will automatically transcribe the audio and create a new note with the transcribed content and linked audio file in the specified folder.
 
 > You can quickly start or stop recording using the `Alt + Q` shortcut.
+>
+> To capture both your voice and meeting participants, set **Audio capture mode** to **Microphone + system audio** in settings. When prompted by your OS, choose a source and make sure audio sharing is enabled.
 
 ### Upload Existing Audio File
 
@@ -47,6 +49,8 @@ Both "Start/Stop recording" and "Upload Audio File" actions can also be accessed
 -   Model: Choose the machine learning model to use for generating text transcriptions. This should not be changed unless you have a specific reason to use a different model.
 
 -   Language: Specify the language of the message being whispered. For a list of languages and codes, consult this [link](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py).
+
+-   Audio capture mode: Choose `Microphone only` for local voice notes, or `Microphone + system audio` to record both your mic and app/system audio (e.g. meeting calls).
 
 -   Save recording: Toggle this option to save the audio file after sending it to the Whisper API. When enabled, you can specify the path in the vault where the audio files should be saved.
 

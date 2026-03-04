@@ -172,8 +172,17 @@ export default class Whisper extends Plugin {
 			name: "Start/stop recording",
 			callback: async () => {
 				if (this.statusBar.status !== RecordingStatus.Recording) {
-					this.statusBar.updateStatus(RecordingStatus.Recording);
-					await this.recorder.startRecording();
+					await this.recorder.startRecording(
+						this.settings.captureMode
+					);
+					if (this.recorder.getRecordingState() === "recording") {
+						this.statusBar.updateStatus(RecordingStatus.Recording);
+					} else {
+						this.statusBar.updateStatus(RecordingStatus.Idle);
+						new Notice(
+							"Recording did not start. Check microphone/system audio permissions and try again."
+						);
+					}
 				} else {
 					this.statusBar.updateStatus(RecordingStatus.Processing);
 					const audioBlobs = await this.recorder.stopRecording();

@@ -6,6 +6,7 @@ export interface WhisperSettings {
 	model: string;
 	prompt: string;
 	language: string;
+	captureMode: "microphone" | "microphone-and-system";
 	saveAudioFile: boolean;
 	saveAudioFilePath: string;
 	debugMode: boolean;
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: WhisperSettings = {
 	model: "whisper-1",
 	prompt: "",
 	language: "en",
+	captureMode: "microphone",
 	saveAudioFile: true,
 	saveAudioFilePath: "",
 	debugMode: false,
