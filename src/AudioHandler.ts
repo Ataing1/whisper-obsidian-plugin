@@ -25,6 +25,9 @@ export class AudioHandler {
 			new Notice("No audio data to process.");
 			return;
 		}
+		console.log(
+			`[Whisper] sendAudioData start: ${blobs.length} segment(s), extension=${extension}`
+		);
 
 		if (this.plugin.settings.debugMode) {
 			const totalSize = blobs.reduce((sum, b) => sum + b.size, 0);
@@ -42,9 +45,15 @@ export class AudioHandler {
 			const segmentSuffix =
 				blobs.length > 1 ? `-part${i + 1}` : "";
 			const fileName = `${baseFileName}${segmentSuffix}.${extension}`;
+			console.log(
+				`[Whisper] Processing segment ${i + 1}/${blobs.length}: ${fileName} (${blob.size} bytes)`
+			);
 
 			// Save audio segment if setting is enabled
 			if (this.plugin.settings.saveAudioFile) {
+				console.log(
+					`[Whisper] Saving segment ${i + 1}/${blobs.length} to vault: ${fileName}`
+				);
 				const path = await this.saveAudioSegment(blob, fileName);
 				if (path) audioFilePaths.push(path);
 			}
@@ -58,16 +67,28 @@ export class AudioHandler {
 						`Transcribing segment ${i + 1}/${blobs.length}: ${(blob.size / 1024).toFixed(0)} KB`
 					);
 				}
+				console.log(
+					`[Whisper] Calling transcription API for segment ${i + 1}/${blobs.length}`
+				);
 
 				const text = await this.transcribeSegment(
 					blob,
 					fileName,
 					prompt
 				);
+				console.log(
+					`[Whisper] Segment ${i + 1}/${blobs.length} transcription complete (${text.length} chars).`
+				);
 				transcripts.push(text);
 				previousTranscriptTail = text.slice(-200);
 			} catch (err) {
 				console.error(`Error transcribing segment ${i + 1}:`, err);
+				if (axios.isAxiosError(err)) {
+					console.error(
+						`[Whisper] Segment ${i + 1}/${blobs.length} failed with status ${err.response?.status}.`,
+						err.response?.data
+					);
+				}
 				new Notice(
 					`Error transcribing segment ${i + 1}/${blobs.length}: ${err.message}`
 				);
@@ -83,6 +104,9 @@ export class AudioHandler {
 			fullTranscript,
 			audioFilePaths,
 			baseFileName
+		);
+		console.log(
+			`[Whisper] Completed sendAudioData: ${blobs.length} segment(s) processed.`
 		);
 		new Notice("Audio parsed successfully.");
 	}

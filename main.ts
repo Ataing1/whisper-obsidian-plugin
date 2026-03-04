@@ -79,6 +79,9 @@ function audioBufferToWavChunk(
 
 async function createUploadedSegments(file: File): Promise<UploadedSegments> {
 	if (file.size <= MAX_AUDIO_SEGMENT_SIZE_BYTES) {
+		console.log(
+			`[Whisper] Upload is within single-segment limit (${file.size} bytes).`
+		);
 		const extension = file.name.split(".").pop() ?? "webm";
 		return {
 			blobs: [file.slice(0, file.size, file.type)],
@@ -88,6 +91,9 @@ async function createUploadedSegments(file: File): Promise<UploadedSegments> {
 
 	const context = new AudioContext();
 	try {
+		console.log(
+			`[Whisper] Large upload detected (${file.size} bytes). Decoding for safe chunking.`
+		);
 		const sourceBuffer = await file.arrayBuffer();
 		const decoded = await context.decodeAudioData(sourceBuffer.slice(0));
 		const bytesPerFrame = decoded.numberOfChannels * 2; // 16-bit PCM
@@ -108,6 +114,9 @@ async function createUploadedSegments(file: File): Promise<UploadedSegments> {
 			);
 			blobs.push(audioBufferToWavChunk(decoded, startFrame, endFrame));
 		}
+		console.log(
+			`[Whisper] Split upload into ${blobs.length} WAV segment(s).`
+		);
 
 		return {
 			blobs,
@@ -202,6 +211,9 @@ export default class Whisper extends Plugin {
 						const file = files[0];
 						const fileName = file.name;
 						const baseFileName = getBaseFileName(fileName);
+						console.log(
+							`[Whisper] Selected upload "${fileName}" (${file.size} bytes).`
+						);
 						let uploadedSegments: UploadedSegments;
 						try {
 							uploadedSegments = await createUploadedSegments(file);
@@ -212,6 +224,9 @@ export default class Whisper extends Plugin {
 							);
 							return;
 						}
+						console.log(
+							`[Whisper] Prepared ${uploadedSegments.blobs.length} segment(s) for transcription.`
+						);
 
 						if (uploadedSegments.blobs.length > 1) {
 							new Notice(
@@ -219,6 +234,9 @@ export default class Whisper extends Plugin {
 							);
 						}
 
+						console.log(
+							`[Whisper] Sending ${uploadedSegments.blobs.length} segment(s) to AudioHandler.`
+						);
 						await this.audioHandler.sendAudioData(
 							uploadedSegments.blobs,
 							baseFileName,
