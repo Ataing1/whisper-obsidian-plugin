@@ -6,6 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"build:to": "node scripts/build-to.mjs",
+		"build:release": "npm run build && node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && bestzip dist/whisper-plus-${npm_package_version}.zip main.js manifest.json styles.css",
 		"release": "release-it"
 	},
 	"keywords": [],
@@ -18,6 +20,7 @@
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
+		"bestzip": "^2.2.1",
 		"builtin-modules": "3.3.0",
 		"conventional-changelog-conventionalcommits": "8.0.0",
 		"dotenv": "^16.3.1",
