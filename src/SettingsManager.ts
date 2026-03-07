@@ -12,6 +12,9 @@ export interface WhisperSettings {
 	debugMode: boolean;
 	createNewFileAfterRecording: boolean;
 	createNewFileAfterRecordingPath: string;
+	enableTimestamps: boolean;
+	noteTemplate: "plain" | "structured";
+	segmentDurationMinutes: number;
 }
 
 export const DEFAULT_SETTINGS: WhisperSettings = {
@@ -26,6 +29,9 @@ export const DEFAULT_SETTINGS: WhisperSettings = {
 	debugMode: false,
 	createNewFileAfterRecording: true,
 	createNewFileAfterRecordingPath: "",
+	enableTimestamps: true,
+	noteTemplate: "structured",
+	segmentDurationMinutes: 10,
 };
 
 export class SettingsManager {

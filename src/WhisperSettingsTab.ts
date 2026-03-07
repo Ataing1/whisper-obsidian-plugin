@@ -25,6 +25,9 @@ export class WhisperSettingsTab extends PluginSettingTab {
 		this.createPromptSetting();
 		this.createLanguageSetting();
 		this.createCaptureModeSetting();
+		this.createTimestampToggleSetting();
+		this.createNoteTemplateSetting();
+		this.createSegmentDurationSetting();
 		this.createSaveAudioFileToggleSetting();
 		this.createSaveAudioFilePathSetting();
 		this.createNewFileToggleSetting();
@@ -154,6 +157,71 @@ export class WhisperSettingsTab extends PluginSettingTab {
 						await this.settingsManager.saveSettings(
 							this.plugin.settings
 						);
+					})
+			);
+	}
+
+	private createTimestampToggleSetting(): void {
+		new Setting(this.containerEl)
+			.setName("Enable timestamps")
+			.setDesc(
+				"Include timestamps in transcripts using Whisper's verbose JSON response format."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.enableTimestamps)
+					.onChange(async (value) => {
+						this.plugin.settings.enableTimestamps = value;
+						await this.settingsManager.saveSettings(
+							this.plugin.settings
+						);
+					})
+			);
+	}
+
+	private createNoteTemplateSetting(): void {
+		new Setting(this.containerEl)
+			.setName("Note template")
+			.setDesc(
+				"Structured notes include frontmatter, timestamped transcript, and sections for summary and action items."
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("plain", "Plain text")
+					.addOption("structured", "Structured meeting note")
+					.setValue(this.plugin.settings.noteTemplate)
+					.onChange(async (value) => {
+						this.plugin.settings.noteTemplate = value as
+							| "plain"
+							| "structured";
+						await this.settingsManager.saveSettings(
+							this.plugin.settings
+						);
+					})
+			);
+	}
+
+	private createSegmentDurationSetting(): void {
+		new Setting(this.containerEl)
+			.setName("Segment duration (minutes)")
+			.setDesc(
+				"Split long recordings into segments of this duration. Keeps a size-based fallback at 24MB."
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("10")
+					.setValue(
+						String(this.plugin.settings.segmentDurationMinutes)
+					)
+					.onChange(async (value) => {
+						const parsed = parseInt(value, 10);
+						if (!isNaN(parsed) && parsed > 0) {
+							this.plugin.settings.segmentDurationMinutes =
+								parsed;
+							await this.settingsManager.saveSettings(
+								this.plugin.settings
+							);
+						}
 					})
 			);
 	}

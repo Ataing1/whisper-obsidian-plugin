@@ -1,12 +1,18 @@
 import axios from "axios";
 import Whisper from "main";
 import { Notice, MarkdownView } from "obsidian";
+import { TranscriptionResult, TranscriptionSegment } from "./types";
+import { NoteBuilder } from "./NoteBuilder";
+
+const MAX_TRANSCRIBE_PROMPT_CHARS = 700;
 
 export class AudioHandler {
 	private plugin: Whisper;
+	private noteBuilder: NoteBuilder;
 
 	constructor(plugin: Whisper) {
 		this.plugin = plugin;
+		this.noteBuilder = new NoteBuilder();
 	}
 
 	async sendAudioData(
@@ -37,7 +43,7 @@ export class AudioHandler {
 		}
 
 		const audioFilePaths: string[] = [];
-		const transcripts: string[] = [];
+		const results: TranscriptionResult[] = [];
 		let previousTranscriptTail = "";
 
 		for (let i = 0; i < blobs.length; i++) {
@@ -71,40 +77,45 @@ export class AudioHandler {
 					`[Whisper] Calling transcription API for segment ${i + 1}/${blobs.length}`
 				);
 
-				const text = await this.transcribeSegment(
+				const result = await this.transcribeSegment(
 					blob,
 					fileName,
 					prompt
 				);
 				console.log(
-					`[Whisper] Segment ${i + 1}/${blobs.length} transcription complete (${text.length} chars).`
+					`[Whisper] Segment ${i + 1}/${blobs.length} transcription complete (${result.text.length} chars).`
 				);
-				transcripts.push(text);
-				previousTranscriptTail = text.slice(-200);
+				results.push(result);
+				previousTranscriptTail = result.text.slice(-200);
 			} catch (err) {
 				console.error(`Error transcribing segment ${i + 1}:`, err);
 				if (axios.isAxiosError(err)) {
+					const apiErrorMessage =
+						(err.response?.data as { error?: { message?: string } })
+							?.error?.message ?? "";
 					console.error(
 						`[Whisper] Segment ${i + 1}/${blobs.length} failed with status ${err.response?.status}.`,
 						err.response?.data
 					);
+					const noticeMessage = apiErrorMessage
+						? `Error transcribing segment ${i + 1}/${blobs.length}: ${apiErrorMessage}`
+						: `Error transcribing segment ${i + 1}/${blobs.length}: ${err.message}`;
+					new Notice(noticeMessage);
+				} else {
+					new Notice(
+						`Error transcribing segment ${i + 1}/${blobs.length}: ${(err as Error).message}`
+					);
 				}
-				new Notice(
-					`Error transcribing segment ${i + 1}/${blobs.length}: ${err.message}`
-				);
-				transcripts.push(
-					`[Transcription failed for segment ${i + 1}]`
-				);
+				results.push({
+					text: `[Transcription failed for segment ${i + 1}]`,
+					segments: [],
+					duration: 0,
+				});
 				previousTranscriptTail = "";
 			}
 		}
 
-		const fullTranscript = transcripts.join(" ");
-		await this.insertTranscript(
-			fullTranscript,
-			audioFilePaths,
-			baseFileName
-		);
+		await this.insertTranscript(results, audioFilePaths, baseFileName);
 		console.log(
 			`[Whisper] Completed sendAudioData: ${blobs.length} segment(s) processed.`
 		);
@@ -112,27 +123,56 @@ export class AudioHandler {
 	}
 
 	private buildPrompt(previousTail: string): string {
-		const parts: string[] = [];
-		if (this.plugin.settings.prompt) {
-			parts.push(this.plugin.settings.prompt);
+		const basePrompt = this.plugin.settings.prompt.trim();
+		const continuation = previousTail.trim();
+
+		if (!basePrompt && !continuation) {
+			return "";
 		}
-		if (previousTail) {
-			parts.push(previousTail);
+
+		if (!continuation) {
+			return basePrompt.slice(0, MAX_TRANSCRIBE_PROMPT_CHARS);
 		}
-		return parts.join(" ");
+
+		if (!basePrompt) {
+			return continuation.slice(-MAX_TRANSCRIBE_PROMPT_CHARS);
+		}
+
+		const separator = " ";
+		const reservedForBase = Math.min(
+			basePrompt.length,
+			Math.floor(MAX_TRANSCRIBE_PROMPT_CHARS * 0.7)
+		);
+		const trimmedBase = basePrompt.slice(0, reservedForBase);
+		const remainingForContinuation =
+			MAX_TRANSCRIBE_PROMPT_CHARS -
+			trimmedBase.length -
+			separator.length;
+		const trimmedContinuation =
+			remainingForContinuation > 0
+				? continuation.slice(-remainingForContinuation)
+				: "";
+
+		return `${trimmedBase}${separator}${trimmedContinuation}`.trim();
 	}
 
 	private async transcribeSegment(
 		blob: Blob,
 		fileName: string,
 		prompt: string
-	): Promise<string> {
+	): Promise<TranscriptionResult> {
 		const formData = new FormData();
 		formData.append("file", blob, fileName);
 		formData.append("model", this.plugin.settings.model);
 		formData.append("language", this.plugin.settings.language);
 		if (prompt) {
 			formData.append("prompt", prompt);
+		}
+
+		const useTimestamps = this.plugin.settings.enableTimestamps;
+		if (useTimestamps) {
+			formData.append("response_format", "verbose_json");
+			formData.append("timestamp_granularities[]", "segment");
 		}
 
 		const response = await axios.post(
@@ -146,7 +186,28 @@ export class AudioHandler {
 			}
 		);
 
-		return response.data.text;
+		if (useTimestamps) {
+			const data = response.data;
+			const segments: TranscriptionSegment[] = (data.segments ?? []).map(
+				(seg: { start: number; end: number; text: string }) => ({
+					start: seg.start,
+					end: seg.end,
+					text: seg.text,
+				})
+			);
+			return {
+				text: data.text ?? "",
+				segments,
+				duration: data.duration ?? 0,
+			};
+		}
+
+		// Plain text fallback
+		return {
+			text: response.data.text,
+			segments: [],
+			duration: 0,
+		};
 	}
 
 	private async saveAudioSegment(
@@ -169,13 +230,13 @@ export class AudioHandler {
 			return audioFilePath;
 		} catch (err) {
 			console.error("Error saving audio file:", err);
-			new Notice("Error saving audio file: " + err.message);
+			new Notice("Error saving audio file: " + (err as Error).message);
 			return null;
 		}
 	}
 
 	private async insertTranscript(
-		text: string,
+		results: TranscriptionResult[],
 		audioFilePaths: string[],
 		baseFileName: string
 	): Promise<void> {
@@ -191,12 +252,13 @@ export class AudioHandler {
 			this.plugin.settings.createNewFileAfterRecording || !activeView;
 
 		if (shouldCreateNewFile) {
-			const audioEmbeds = audioFilePaths
-				.map((p) => `![[${p}]]`)
-				.join("\n");
-			const content = audioEmbeds
-				? `${audioEmbeds}\n${text}`
-				: text;
+			const content = this.noteBuilder.buildNote({
+				results,
+				audioFilePaths,
+				baseFileName,
+				enableTimestamps: this.plugin.settings.enableTimestamps,
+				noteTemplate: this.plugin.settings.noteTemplate,
+			});
 			await this.plugin.app.vault.create(noteFilePath, content);
 			await this.plugin.app.workspace.openLinkText(
 				noteFilePath,
@@ -204,6 +266,8 @@ export class AudioHandler {
 				true
 			);
 		} else {
+			// Insert at cursor — use plain text for inline insertion
+			const text = results.map((r) => r.text).join(" ");
 			const editor =
 				this.plugin.app.workspace.getActiveViewOfType(
 					MarkdownView
